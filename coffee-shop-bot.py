@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from telegram.ext import Updater, CommandHandler, \
-    MessageHandler, Filters
+    MessageHandler, Filters, CallbackQueryHandler
 import logging
 import bot_token
+from menu import menu, button
 
 
 # Enable logging
@@ -26,10 +27,6 @@ def help_menu(bot, update):
         text='<b>Доступные команды:</b>\
         \n\t/menu - отобразить меню\n\t/help - отобразить раздел справки\n', \
         parse_mode='HTML')
-
-
-def menu(bot, update):
-    pass
 
 
 def unknown(bot, update):
@@ -57,6 +54,9 @@ def main():
 
     # Trigger for unknown command
     dp.add_handler(MessageHandler(Filters.command, unknown))
+
+    dp.add_handler(CommandHandler('start', start))
+    dp.add_handler(CallbackQueryHandler(button))
 
     # Start the bot
     updater.start_polling()
