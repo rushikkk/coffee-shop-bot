@@ -63,7 +63,13 @@ def syrup(bot, update):
 
 
 def bill(bot, update):
-    pass
+    query = update.callback_query
+    bot.edit_message_text(
+        chat_id=query.message.chat_id,
+        message_id=query.message.message_id,
+        text="Спасибо за заказ!"
+    )
+    return ConversationHandler.END
 
 
 conv_handler = ConversationHandler(
