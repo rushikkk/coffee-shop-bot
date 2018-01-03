@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from telegram.ext import Updater, CommandHandler, \
-    MessageHandler, Filters, CallbackQueryHandler
+    MessageHandler, Filters
 import logging
 import bot_token
-from menu import menu, button
+from menu import conv_handler
 
 
 # Enable logging
@@ -17,22 +17,24 @@ logger = logging.getLogger(__name__)
 
 def start(bot, update):
     """Start the Bot"""
-    bot.send_message(chat_id=update.message.chat_id, \
-        text="Введите /menu для отображения меню.\nВведите /help для справки.")
+    bot.send_message(chat_id=update.message.chat_id,
+                     text="Введите /menu для отображения меню."
+                     "\nВведите /help для справки.")
 
 
 def help_menu(bot, update):
     """Show help menu"""
-    bot.send_message(chat_id=update.message.chat_id, \
-        text='<b>Доступные команды:</b>\
-        \n\t/menu - отобразить меню\n\t/help - отобразить раздел справки\n', \
-        parse_mode='HTML')
+    bot.send_message(chat_id=update.message.chat_id,
+                     text="<b>Доступные команды:</b>"
+                     "\n\t/menu - отобразить меню"
+                     "\n\t/help - отобразить раздел справки\n",
+                     parse_mode='HTML')
 
 
 def unknown(bot, update):
     """Unknown command"""
-    bot.send_message(chat_id=update.message.chat_id, \
-        text='Unknown command. Type /help for help.')
+    bot.send_message(chat_id=update.message.chat_id,
+                     text='Unknown command. Type /help for help.')
 
 
 def main():
@@ -49,14 +51,10 @@ def main():
     # /help command
     dp.add_handler(CommandHandler('help', help_menu))
 
-    # /help command
-    dp.add_handler(CommandHandler('menu', menu))
+    dp.add_handler(conv_handler)
 
     # Trigger for unknown command
     dp.add_handler(MessageHandler(Filters.command, unknown))
-
-    dp.add_handler(CommandHandler('start', start))
-    dp.add_handler(CallbackQueryHandler(button))
 
     # Start the bot
     updater.start_polling()
