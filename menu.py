@@ -12,11 +12,14 @@ c = conn.cursor()
 c.execute("SELECT * FROM menu_coffee")
 coffees = c.fetchall()
 c.execute("SELECT * FROM menu_syrup")
-cyrups = c.fetchall()
+syrups = c.fetchall()
 conn.close()
+
+order = {}
 
 
 def menu(bot, update):
+    order.clear()
     keyboard = [
         [InlineKeyboardButton("MENU", callback_data=str(COFFEE))]
     ]
@@ -29,6 +32,8 @@ def menu(bot, update):
 
 
 def coffee(bot, update):
+    # print(coffee.__name__)
+    # print(update)
     query = update.callback_query
     keyboard = []
     for data in coffees:
@@ -47,8 +52,13 @@ def coffee(bot, update):
 
 def syrup(bot, update):
     query = update.callback_query
+    for data in coffees:
+        if data[0] == int(query.data):
+            order['coffee'] = data[1]
+            order['cost'] = data[2]
+            break
     keyboard = []
-    for data in cyrups:
+    for data in syrups:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -64,10 +74,16 @@ def syrup(bot, update):
 
 def bill(bot, update):
     query = update.callback_query
+    for data in syrups:
+        if data[0] == int(query.data):
+            order['syrup'] = data[1]
+            order['cost'] += data[2]
+            break
+    # print(order)
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
-        text="Спасибо за заказ!"
+        text='Ваш заказ:\nКофе: {coffee}\nСироп: {syrup}\nСтоимость заказа: {cost}'.format(**order)
     )
     return ConversationHandler.END
 

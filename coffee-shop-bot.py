@@ -3,6 +3,7 @@
 
 from telegram.ext import Updater, CommandHandler, \
     MessageHandler, Filters
+from telegram import ReplyKeyboardRemove
 import logging
 import bot_token
 from menu import conv_handler
@@ -34,7 +35,8 @@ def help_menu(bot, update):
 def unknown(bot, update):
     """Unknown command"""
     bot.send_message(chat_id=update.message.chat_id,
-                     text='Unknown command. Type /help for help.')
+                     text='Unknown command. Type /help for help.',
+                     reply_markup=ReplyKeyboardRemove())
 
 
 def main():
