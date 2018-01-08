@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler,\
- CallbackQueryHandler, ConversationHandler
+ CallbackQueryHandler, ConversationHandler, MessageHandler,\
+    Filters
 import sqlite3
 
 COFFEE, SYRUP, BILL = range(3)
@@ -21,13 +22,23 @@ order = {}
 def menu(bot, update):
     order.clear()
     keyboard = [
-        [InlineKeyboardButton("MENU", callback_data=str(COFFEE))]
+        [InlineKeyboardButton("МЕНЮ", callback_data='choosing')],
+        [InlineKeyboardButton("ОТМЕНА", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(
-        "PRESS 'MENU'",
-        reply_markup=reply_markup
-    )
+    if update.callback_query:
+        query = update.callback_query
+        bot.edit_message_text(
+            chat_id=query.message.chat_id,
+            message_id=query.message.message_id,
+            text="PRESS 'MENU'",
+            reply_markup=reply_markup
+        )
+    else:
+        update.message.reply_text(
+            "PRESS 'MENU'",
+            reply_markup=reply_markup
+        )
     return COFFEE
 
 
@@ -39,6 +50,8 @@ def coffee(bot, update):
     for data in coffees:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
+    keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
+                     InlineKeyboardButton("ОТМЕНА", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     bot.edit_message_text(
@@ -61,6 +74,8 @@ def syrup(bot, update):
     for data in syrups:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
+    keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
+                     InlineKeyboardButton("ОТМЕНА", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     bot.edit_message_text(
@@ -83,18 +98,48 @@ def bill(bot, update):
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
-        text='Ваш заказ:\nКофе: {coffee}\nСироп: {syrup}\nСтоимость заказа: {cost}'.format(**order)
+        text='Ваш заказ:\n\tКофе: {coffee}\n\t'
+             'Сироп: {syrup}\n\tСтоимость заказа: {cost}'.format(**order)
     )
     return ConversationHandler.END
+
+
+def reset(bot, update):
+    query = update.callback_query
+    bot.edit_message_text(
+        chat_id=query.message.chat_id,
+        message_id=query.message.message_id,
+        text='Вы отменили заказ!'
+    )
+    return ConversationHandler.END
+
+def unknown(bot, update):
+    """Unknown command"""
+    bot.send_message(chat_id=update.message.chat_id,
+                     text='Unknown command. Type /help for help.')
 
 
 conv_handler = ConversationHandler(
         entry_points=[CommandHandler('menu', menu)],
 
         states={
-            COFFEE: [CallbackQueryHandler(coffee)],
-            SYRUP:  [CallbackQueryHandler(syrup)],
-            BILL:   [CallbackQueryHandler(bill)]
+            COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(coffee),
+                     # CommandHandler('menu', menu),
+                     # MessageHandler(Filters.command, unknown)
+                     ],
+            SYRUP:  [CallbackQueryHandler(menu, pattern='^back$'),
+                     CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(syrup),
+                     # CommandHandler('menu', menu),
+                     # MessageHandler(Filters.command, unknown)
+                     ],
+            BILL:   [CallbackQueryHandler(coffee, pattern='^back$'),
+                     CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(bill),
+                     # CommandHandler('menu', menu),
+                     # MessageHandler(Filters.command, unknown)
+                     ]
         },
 
         fallbacks=[CommandHandler('menu', menu)]
