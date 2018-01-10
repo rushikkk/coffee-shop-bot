@@ -7,16 +7,8 @@ from telegram.ext import CommandHandler,\
 import sqlite3
 
 COFFEE, SYRUP, BILL = range(3)
-
-conn = sqlite3.connect('xmpl-coffee-shop-db.db')
-c = conn.cursor()
-c.execute("SELECT * FROM menu_coffee")
-coffees = c.fetchall()
-c.execute("SELECT * FROM menu_syrup")
-syrups = c.fetchall()
-conn.close()
-
 order = {}
+sql_query = ['' for i in range(4)]
 
 
 def menu(bot, update):
@@ -44,9 +36,15 @@ def menu(bot, update):
 
 def coffee(bot, update):
     # print(coffee.__name__)
-    # print(update)
     query = update.callback_query
+    sql_query[0] = update._effective_user.id
     keyboard = []
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM menu_coffee")
+    global coffees
+    coffees = c.fetchall()
+    conn.close()
     for data in coffees:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
@@ -68,9 +66,16 @@ def syrup(bot, update):
     for data in coffees:
         if data[0] == int(query.data):
             order['coffee'] = data[1]
+            sql_query[1] = data[0]
             order['cost'] = data[2]
             break
     keyboard = []
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM menu_syrup")
+    global syrups
+    syrups = c.fetchall()
+    conn.close()
     for data in syrups:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
@@ -92,9 +97,15 @@ def bill(bot, update):
     for data in syrups:
         if data[0] == int(query.data):
             order['syrup'] = data[1]
+            sql_query[2] = data[0]
             order['cost'] += data[2]
+            sql_query[3] = order['cost']
             break
-    # print(order)
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    c = conn.cursor()
+    c.execute("INSERT INTO orders(user_id, coffee_id, syrup_id, cost) VALUES (?, ?, ?, ?);", sql_query)
+    conn.commit()
+    conn.close()
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
