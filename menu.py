@@ -5,10 +5,11 @@ from telegram.ext import CommandHandler,\
  CallbackQueryHandler, ConversationHandler, MessageHandler,\
     Filters
 import sqlite3
+from datetime import datetime
 
 COFFEE, SYRUP, BILL = range(3)
 order = {}
-sql_query = ['' for i in range(4)]
+sql_query = ['' for i in range(5)]
 
 
 def menu(bot, update):
@@ -39,7 +40,7 @@ def coffee(bot, update):
     query = update.callback_query
     sql_query[0] = update._effective_user.id
     keyboard = []
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
     c = conn.cursor()
     c.execute("SELECT * FROM menu_coffee")
     global coffees
@@ -70,7 +71,7 @@ def syrup(bot, update):
             order['cost'] = data[2]
             break
     keyboard = []
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
     c = conn.cursor()
     c.execute("SELECT * FROM menu_syrup")
     global syrups
@@ -101,9 +102,10 @@ def bill(bot, update):
             order['cost'] += data[2]
             sql_query[3] = order['cost']
             break
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db')
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
     c = conn.cursor()
-    c.execute("INSERT INTO orders(user_id, coffee_id, syrup_id, cost) VALUES (?, ?, ?, ?);", sql_query)
+    sql_query[4] = datetime.now()
+    c.execute("INSERT INTO orders(user_id, coffee_id, syrup_id, cost, ordered_at) VALUES (?, ?, ?, ?, ?);", sql_query)
     conn.commit()
     conn.close()
     bot.edit_message_text(
