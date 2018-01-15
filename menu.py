@@ -16,6 +16,7 @@ def menu(bot, update):
     order.clear()
     keyboard = [
         [InlineKeyboardButton("МЕНЮ", callback_data='choosing')],
+        [InlineKeyboardButton("ПОСЛЕДНИЙ ЗАКАЗ", callback_data='last_order')],
         [InlineKeyboardButton("ОТМЕНА", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -116,6 +117,37 @@ def bill(bot, update):
     )
     return ConversationHandler.END
 
+def last_order(bot, update):
+    query = update.callback_query
+    user_id = [update._effective_user.id]
+    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+    c = conn.cursor()
+    c.execute("""
+    SELECT coffee_name, syrup_name, cost
+    FROM orders 
+    INNER JOIN menu_coffee on menu_coffee.id = orders.coffee_id 
+    INNER JOIN menu_syrup on menu_syrup.id = orders.syrup_id 
+    WHERE user_id = ? 
+    ORDER BY ordered_at desc 
+    LIMIT 1
+    """, user_id)
+    l_order = c.fetchone()
+    conn.close()
+    if l_order:
+        bot.edit_message_text(
+            chat_id=query.message.chat_id,
+            message_id=query.message.message_id,
+            text='Ваш последний заказ:\n\tКофе: {}\n\t'
+                 'Сироп: {}\n\tСтоимость заказа: {}'.format(*l_order)
+        )
+    else:
+        bot.edit_message_text(
+            chat_id=query.message.chat_id,
+            message_id=query.message.message_id,
+            text='Вы ещё ничего не заказывали!'
+        )
+    return ConversationHandler.END
+
 
 def reset(bot, update):
     query = update.callback_query
@@ -137,6 +169,7 @@ conv_handler = ConversationHandler(
 
         states={
             COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(last_order, pattern='^last_order$'),
                      CallbackQueryHandler(coffee),
                      # CommandHandler('menu', menu),
                      # MessageHandler(Filters.command, unknown)
