@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CommandHandler,\
- CallbackQueryHandler, ConversationHandler, MessageHandler,\
-    Filters
-import sqlite3
+ CallbackQueryHandler, ConversationHandler
 from datetime import datetime
+import coffee_sqlite
 
 COFFEE, SYRUP, BILL = range(3)
 order = {}
@@ -41,12 +40,8 @@ def coffee(bot, update):
     query = update.callback_query
     sql_query[0] = update._effective_user.id
     keyboard = []
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-    c = conn.cursor()
-    c.execute("SELECT * FROM menu_coffee")
     global coffees
-    coffees = c.fetchall()
-    conn.close()
+    coffees = coffee_sqlite.select_items('menu_coffee')
     for data in coffees:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
@@ -72,12 +67,8 @@ def syrup(bot, update):
             order['cost'] = data[2]
             break
     keyboard = []
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-    c = conn.cursor()
-    c.execute("SELECT * FROM menu_syrup")
     global syrups
-    syrups = c.fetchall()
-    conn.close()
+    syrups = coffee_sqlite.select_items('menu_syrup')
     for data in syrups:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
@@ -103,12 +94,8 @@ def bill(bot, update):
             order['cost'] += data[2]
             sql_query[3] = order['cost']
             break
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-    c = conn.cursor()
     sql_query[4] = datetime.now()
-    c.execute("INSERT INTO orders(user_id, coffee_id, syrup_id, cost, ordered_at) VALUES (?, ?, ?, ?, ?);", sql_query)
-    conn.commit()
-    conn.close()
+    coffee_sqlite.insert_order(sql_query)
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
@@ -117,22 +104,11 @@ def bill(bot, update):
     )
     return ConversationHandler.END
 
+
 def last_order(bot, update):
     query = update.callback_query
     user_id = [update._effective_user.id]
-    conn = sqlite3.connect('xmpl-coffee-shop-db.db', detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
-    c = conn.cursor()
-    c.execute("""
-    SELECT coffee_name, syrup_name, cost
-    FROM orders 
-    INNER JOIN menu_coffee on menu_coffee.id = orders.coffee_id 
-    INNER JOIN menu_syrup on menu_syrup.id = orders.syrup_id 
-    WHERE user_id = ? 
-    ORDER BY ordered_at desc 
-    LIMIT 1
-    """, user_id)
-    l_order = c.fetchone()
-    conn.close()
+    l_order = coffee_sqlite.last_order(user_id)
     if l_order:
         bot.edit_message_text(
             chat_id=query.message.chat_id,
@@ -140,6 +116,7 @@ def last_order(bot, update):
             text='Ваш последний заказ:\n\tКофе: {}\n\t'
                  'Сироп: {}\n\tСтоимость заказа: {}'.format(*l_order)
         )
+        # return BILL
     else:
         bot.edit_message_text(
             chat_id=query.message.chat_id,
@@ -157,6 +134,7 @@ def reset(bot, update):
         text='Вы отменили заказ!'
     )
     return ConversationHandler.END
+
 
 def unknown(bot, update):
     """Unknown command"""
