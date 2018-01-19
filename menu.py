@@ -35,14 +35,17 @@ def menu(bot, update):
     return COFFEE
 
 
-def coffee(bot, update):
+def coffee(bot, update, user_data):
     # print(coffee.__name__)
     query = update.callback_query
-    sql_query[0] = update._effective_user.id
+    # sql_query[0] = update._effective_user.id
+    # user_id = update.effective_user['id']
+    sql_query[0] = update.effective_user['id']
     keyboard = []
-    global coffees
-    coffees = coffee_sqlite.select_items('menu_coffee')
-    for data in coffees:
+    # global coffees
+    # coffees = coffee_sqlite.select_items('menu_coffee')
+    user_data['coffees'] = coffee_sqlite.select_items('menu_coffee')
+    for data in user_data['coffees']:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
     keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
@@ -58,18 +61,19 @@ def coffee(bot, update):
     return SYRUP
 
 
-def syrup(bot, update):
+def syrup(bot, update, user_data):
     query = update.callback_query
-    for data in coffees:
+    for data in user_data['coffees']:
         if data[0] == int(query.data):
-            order['coffee'] = data[1]
+            user_data['coffee'] = data[1]
             sql_query[1] = data[0]
-            order['cost'] = data[2]
+            user_data['cost'] = data[2]
             break
     keyboard = []
-    global syrups
-    syrups = coffee_sqlite.select_items('menu_syrup')
-    for data in syrups:
+    # global syrups
+    # syrups = coffee_sqlite.select_items('menu_syrup')
+    user_data['syrups'] = coffee_sqlite.select_items('menu_syrup')
+    for data in user_data['syrups']:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
     keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
@@ -85,14 +89,14 @@ def syrup(bot, update):
     return BILL
 
 
-def bill(bot, update):
+def bill(bot, update, user_data):
     query = update.callback_query
-    for data in syrups:
+    for data in user_data['syrups']:
         if data[0] == int(query.data):
-            order['syrup'] = data[1]
+            user_data['syrup'] = data[1]
             sql_query[2] = data[0]
-            order['cost'] += data[2]
-            sql_query[3] = order['cost']
+            user_data['cost'] += data[2]
+            sql_query[3] = user_data['cost']
             break
     sql_query[4] = datetime.now()
     coffee_sqlite.insert_order(sql_query)
@@ -100,14 +104,14 @@ def bill(bot, update):
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
         text='Ваш заказ:\n\tКофе: {coffee}\n\t'
-             'Сироп: {syrup}\n\tСтоимость заказа: {cost}'.format(**order)
+             'Сироп: {syrup}\n\tСтоимость заказа: {cost}'.format(**user_data)
     )
     return ConversationHandler.END
 
 
 def last_order(bot, update):
     query = update.callback_query
-    user_id = [update._effective_user.id]
+    user_id = [update.effective_user['id']]
     l_order = coffee_sqlite.last_order(user_id)
     if l_order:
         bot.edit_message_text(
@@ -148,19 +152,19 @@ conv_handler = ConversationHandler(
         states={
             COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(last_order, pattern='^last_order$'),
-                     CallbackQueryHandler(coffee),
+                     CallbackQueryHandler(coffee, pass_user_data=True),
                      # CommandHandler('menu', menu),
                      # MessageHandler(Filters.command, unknown)
                      ],
             SYRUP:  [CallbackQueryHandler(menu, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
-                     CallbackQueryHandler(syrup),
+                     CallbackQueryHandler(syrup, pass_user_data=True),
                      # CommandHandler('menu', menu),
                      # MessageHandler(Filters.command, unknown)
                      ],
             BILL:   [CallbackQueryHandler(coffee, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
-                     CallbackQueryHandler(bill),
+                     CallbackQueryHandler(bill, pass_user_data=True),
                      # CommandHandler('menu', menu),
                      # MessageHandler(Filters.command, unknown)
                      ]
