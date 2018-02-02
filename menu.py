@@ -46,7 +46,7 @@ def coffee(bot, update, user_data):
     # coffees = coffee_sqlite.select_items('menu_coffee')
     user_data['coffees'] = coffee_sqlite.select_items('menu_coffee')
     for data in user_data['coffees']:
-        keyboard.append([InlineKeyboardButton(str(data[1]),
+        keyboard.append([InlineKeyboardButton(u'\U00002615' + str(data[1]),
                         callback_data=data[0])])
     keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
                      InlineKeyboardButton("ОТМЕНА", callback_data='reset')])
