@@ -14,9 +14,9 @@ sql_query = ['' for i in range(5)]
 def menu(bot, update):
     order.clear()
     keyboard = [
-        [InlineKeyboardButton("МЕНЮ", callback_data='choosing')],
-        [InlineKeyboardButton("ПОСЛЕДНИЙ ЗАКАЗ", callback_data='last_order')],
-        [InlineKeyboardButton("ОТМЕНА", callback_data='reset')]
+        [InlineKeyboardButton("MENU", callback_data='choosing')],
+        [InlineKeyboardButton("LAST ORDER", callback_data='last_order')],
+        [InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.callback_query:
@@ -46,10 +46,10 @@ def coffee(bot, update, user_data):
     # coffees = coffee_sqlite.select_items('menu_coffee')
     user_data['coffees'] = coffee_sqlite.select_items('menu_coffee')
     for data in user_data['coffees']:
-        keyboard.append([InlineKeyboardButton(u'\U00002615' + str(data[1]),
+        keyboard.append([InlineKeyboardButton('\U00002615 ' + str(data[1]),
                         callback_data=data[0])])
-    keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
-                     InlineKeyboardButton("ОТМЕНА", callback_data='reset')])
+    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+                     InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     bot.edit_message_text(
@@ -76,8 +76,8 @@ def syrup(bot, update, user_data):
     for data in user_data['syrups']:
         keyboard.append([InlineKeyboardButton(str(data[1]),
                         callback_data=data[0])])
-    keyboard.append([InlineKeyboardButton("НАЗАД", callback_data='back'),
-                     InlineKeyboardButton("ОТМЕНА", callback_data='reset')])
+    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+                     InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     bot.edit_message_text(
@@ -103,8 +103,8 @@ def bill(bot, update, user_data):
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
-        text='Ваш заказ:\n\tКофе: {coffee}\n\t'
-             'Сироп: {syrup}\n\tСтоимость заказа: {cost}'.format(**user_data)
+        text='Your order is:\n\tCoffee: {coffee}\n\t'
+             'Syrup: {syrup}\n\tPrice: {cost}'.format(**user_data)
     )
     return ConversationHandler.END
 
@@ -117,8 +117,8 @@ def last_order(bot, update):
         bot.edit_message_text(
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
-            text='Ваш последний заказ:\n\tКофе: {}\n\t'
-                 'Сироп: {}\n\tСтоимость заказа: {}'.format(*l_order)
+            text='Your last order is:\n\tCoffee: {}\n\t'
+                 'Syrup: {}\n\tPrice: {}'.format(*l_order)
         )
         # return BILL
     else:
@@ -135,7 +135,7 @@ def reset(bot, update):
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
-        text='Вы отменили заказ!'
+        text='Your order is canceled!'
     )
     return ConversationHandler.END
 
