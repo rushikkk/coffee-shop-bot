@@ -5,14 +5,13 @@ from telegram.ext import CommandHandler,\
  CallbackQueryHandler, ConversationHandler
 from datetime import datetime
 import coffee_sqlite
+from emoji import emojize
 
-COFFEE, SYRUP, BILL = range(3)
-order = {}
-sql_query = ['' for i in range(5)]
+COFFEE, SIZE, SYRUP, BILL = range(4)
+sql_query = ['' for i in range(6)]
 
 
 def menu(bot, update):
-    order.clear()
     keyboard = [
         [InlineKeyboardButton("MENU", callback_data='choosing')],
         [InlineKeyboardButton("LAST ORDER", callback_data='last_order')],
@@ -36,14 +35,9 @@ def menu(bot, update):
 
 
 def coffee(bot, update, user_data):
-    # print(coffee.__name__)
     query = update.callback_query
-    # sql_query[0] = update._effective_user.id
-    # user_id = update.effective_user['id']
     sql_query[0] = update.effective_user['id']
     keyboard = []
-    # global coffees
-    # coffees = coffee_sqlite.select_items('menu_coffee')
     user_data['coffees'] = coffee_sqlite.select_items('menu_coffee')
     for data in user_data['coffees']:
         keyboard.append([InlineKeyboardButton('\U00002615 ' + str(data[1]),
@@ -55,7 +49,33 @@ def coffee(bot, update, user_data):
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
-        text="CHOOSE COFFEE",
+        text="Choose coffee:",
+        reply_markup=reply_markup
+    )
+    return SIZE
+
+
+def coffee_size(bot, update, user_data):
+    query = update.callback_query
+    for data in user_data['coffees']:
+        if data[0] == int(query.data):
+            user_data['coffee'] = data[1]
+            user_data['is_syrup'] = data[3]
+            user_data['is_size'] = data[4]
+            sql_query[1] = data[0]
+            break
+    keyboard = []
+    user_data['sizes'] = coffee_sqlite.select_sizes(sql_query[1])
+    for data in user_data['sizes']:
+        keyboard.append([InlineKeyboardButton(emojize(":scales: ", use_aliases=True) + str(data[2]) + 'mL, ' + str(data[3]) + ' BYN',
+                        callback_data=data[0])])
+    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+                     InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    bot.edit_message_text(
+        chat_id=query.message.chat_id,
+        message_id=query.message.message_id,
+        text="Choose size:",
         reply_markup=reply_markup
     )
     return SYRUP
@@ -63,23 +83,20 @@ def coffee(bot, update, user_data):
 
 def syrup(bot, update, user_data):
     query = update.callback_query
-    for data in user_data['coffees']:
+    for data in user_data['sizes']:
         if data[0] == int(query.data):
-            user_data['coffee'] = data[1]
-            sql_query[1] = data[0]
-            user_data['cost'] = data[2]
+            user_data['size'] = data[2]
+            sql_query[5] = data[0]
+            user_data['cost'] = data[3]
             break
     keyboard = []
-    # global syrups
-    # syrups = coffee_sqlite.select_items('menu_syrup')
     user_data['syrups'] = coffee_sqlite.select_items('menu_syrup')
     for data in user_data['syrups']:
-        keyboard.append([InlineKeyboardButton(str(data[1]),
+        keyboard.append([InlineKeyboardButton(emojize(data[3]) + str(data[1]) + ', ' + str(data[2]) + ' BYN',
                         callback_data=data[0])])
     keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
                      InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
@@ -104,7 +121,8 @@ def bill(bot, update, user_data):
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
         text='Your order is:\n\tCoffee: {coffee}\n\t'
-             'Syrup: {syrup}\n\tPrice: {cost}'.format(**user_data)
+             'Syrup: {syrup}\n\tSize: {size}mL\n\t'
+             'Price: {cost} BYN'.format(**user_data)
     )
     return ConversationHandler.END
 
@@ -118,14 +136,14 @@ def last_order(bot, update):
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
             text='Your last order is:\n\tCoffee: {}\n\t'
-                 'Syrup: {}\n\tPrice: {}'.format(*l_order)
+                 'Syrup: {}\n\tSize: {}mL\n\t'
+                 'Price: {} BYN'.format(*l_order)
         )
-        # return BILL
     else:
         bot.edit_message_text(
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
-            text='Вы ещё ничего не заказывали!'
+            text='You have not ordered anything yet!'
         )
     return ConversationHandler.END
 
@@ -153,20 +171,18 @@ conv_handler = ConversationHandler(
             COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(last_order, pattern='^last_order$'),
                      CallbackQueryHandler(coffee, pass_user_data=True),
-                     # CommandHandler('menu', menu),
-                     # MessageHandler(Filters.command, unknown)
+                     ],
+            SIZE:   [CallbackQueryHandler(menu, pattern='^back$'),
+                     CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(coffee_size, pass_user_data=True),
                      ],
             SYRUP:  [CallbackQueryHandler(menu, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(syrup, pass_user_data=True),
-                     # CommandHandler('menu', menu),
-                     # MessageHandler(Filters.command, unknown)
                      ],
             BILL:   [CallbackQueryHandler(coffee, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(bill, pass_user_data=True),
-                     # CommandHandler('menu', menu),
-                     # MessageHandler(Filters.command, unknown)
                      ]
         },
 
