@@ -7,7 +7,7 @@ from datetime import datetime
 import coffee_sqlite
 from emoji import emojize
 
-COFFEE, SIZE, SYRUP, BILL = range(4)
+COFFEE, SIZE, SYRUP, BILL, RETRY = range(5)
 sql_query = ['' for i in range(6)]
 
 
@@ -145,20 +145,33 @@ def last_order(bot, update):
     user_id = [update.effective_user['id']]
     l_order = coffee_sqlite.last_order(user_id)
     if l_order:
+        keyboard = []
+        keyboard.append([InlineKeyboardButton("\U00002B05 YES", callback_data='retry'),
+                         InlineKeyboardButton("\U0000274E NO", callback_data='back')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
         bot.edit_message_text(
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
             text='Your last order is:\n\tCoffee: {}\n\t'
                  'Syrup: {}\n\tSize: {}mL\n\t'
-                 'Price: {} BYN'.format(*l_order)
+                 'Price: {} BYN\n\t'
+                 'Retry?'.format(*l_order),
+            reply_markup = reply_markup
         )
+        return RETRY
     else:
         bot.edit_message_text(
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
             text='You have not ordered anything yet!'
         )
-    return ConversationHandler.END
+        return ConversationHandler.END
+
+
+def last_order_retry(bot, update):
+    query = update.callback_query
+
+    pass
 
 
 def reset(bot, update):
@@ -196,6 +209,10 @@ conv_handler = ConversationHandler(
             BILL:   [CallbackQueryHandler(coffee, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(bill, pass_user_data=True),
+                     ],
+            RETRY:  [CallbackQueryHandler(last_order_retry, pattern='^retry$'),
+                     CallbackQueryHandler(last_order, pattern='^back$'),
+                     CallbackQueryHandler(coffee, pass_user_data=True),
                      ]
         },
 
