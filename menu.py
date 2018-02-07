@@ -140,22 +140,25 @@ def bill(bot, update, user_data):
     return ConversationHandler.END
 
 
-def last_order(bot, update):
+def last_order(bot, update, user_data):
     query = update.callback_query
     user_id = [update.effective_user['id']]
     l_order = coffee_sqlite.last_order(user_id)
     print(l_order)
+    retry_order = [i for i in l_order[3:]]
+    retry_order.insert(4, datetime.now())
+    user_data['sql_query'] = retry_order
     if l_order:
         keyboard = []
-        keyboard.append([InlineKeyboardButton("\U00002B05 YES", callback_data='retry'),
-                         InlineKeyboardButton("\U0000274E NO", callback_data='back')])
+        keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+                         InlineKeyboardButton("\U0001F197 YES", callback_data='retry')])
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.edit_message_text(
             chat_id=query.message.chat_id,
             message_id=query.message.message_id,
-            text='Your last order is:\n\tCoffee: {}\n\t'
-                 'Syrup: {}\n\tSize: {}mL\n\t'
-                 'Price: {} BYN\n\t'
+            text='Your last order is:\n\tCoffee: {0}\n\t'
+                 'Syrup: {1}\n\tSize: {2}mL\n\t'
+                 'Current price: {6}\n\t'
                  'Retry?'.format(*l_order),
             reply_markup=reply_markup
         )
@@ -169,10 +172,16 @@ def last_order(bot, update):
         return ConversationHandler.END
 
 
-def last_order_retry(bot, update):
+def last_order_retry(bot, update, user_data):
     query = update.callback_query
+    coffee_sqlite.insert_order(user_data['sql_query'])
+    bot.edit_message_text(
+        chat_id=query.message.chat_id,
+        message_id=query.message.message_id,
+        text=emojize(':banana:', use_aliases=True)
+    )
+    return ConversationHandler.END
 
-    pass
 
 
 def reset(bot, update):
@@ -196,7 +205,7 @@ conv_handler = ConversationHandler(
 
         states={
             COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
-                     CallbackQueryHandler(last_order, pattern='^last_order$'),
+                     CallbackQueryHandler(last_order, pattern='^last_order$', pass_user_data=True),
                      CallbackQueryHandler(coffee, pass_user_data=True),
                      ],
             SIZE:   [CallbackQueryHandler(menu, pattern='^back$'),
@@ -211,7 +220,7 @@ conv_handler = ConversationHandler(
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(bill, pass_user_data=True),
                      ],
-            RETRY:  [CallbackQueryHandler(last_order_retry, pattern='^retry$'),
+            RETRY:  [CallbackQueryHandler(last_order_retry, pattern='^retry$', pass_user_data=True),
                      CallbackQueryHandler(menu, pattern='^back$'),
                      CallbackQueryHandler(coffee, pass_user_data=True),
                      ]

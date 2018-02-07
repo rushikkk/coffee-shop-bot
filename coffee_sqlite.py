@@ -50,7 +50,7 @@ def last_order(user_id):
         detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
     c = conn.cursor()
     c.execute("""
-    SELECT coffee_name, syrup_name, coffee_size.size, orders.cost, user_id, orders.coffee_id, syrup_id, (syrup_cost+coffee_size.cost), size_id
+    SELECT coffee_name, syrup_name, coffee_size.size, user_id, orders.coffee_id, syrup_id, (syrup_cost+coffee_size.cost), size_id
     FROM orders
     INNER JOIN menu_coffee on (menu_coffee.id = orders.coffee_id)
     INNER JOIN menu_syrup on (menu_syrup.id = orders.syrup_id)
@@ -62,11 +62,3 @@ def last_order(user_id):
     l_order = c.fetchone()
     conn.close()
     return l_order
-
-# s = last_order([210229751])
-# a = [i for i in s[4:]]
-# if s[3] != s[7]:
-#     a[]
-# print(a)
-# print(type(s), s)
-
