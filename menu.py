@@ -7,13 +7,13 @@ from datetime import datetime
 import coffee_sqlite
 from emoji import emojize
 
-COFFEE, SIZE, SYRUP, BILL, RETRY = range(5)
+CHOSEN, COFFEE, SIZE, SYRUP, BILL, RETRY = range(6)
 sql_query = ['' for i in range(6)]
 
 
 def menu(bot, update):
     keyboard = [
-        [InlineKeyboardButton("\U0001F4D6 MENU", callback_data='choosing')],
+        [InlineKeyboardButton("\U0001F4D6 MENU", callback_data='coffee')],
         [InlineKeyboardButton("\U0001F4C3 LAST ORDER", callback_data='last_order')],
         [InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')]
     ]
@@ -31,7 +31,7 @@ def menu(bot, update):
             "PRESS 'MENU'",
             reply_markup=reply_markup
         )
-    return COFFEE
+    return CHOSEN
 
 
 def coffee(bot, update, user_data):
@@ -52,18 +52,19 @@ def coffee(bot, update, user_data):
         text="Choose coffee:",
         reply_markup=reply_markup
     )
-    return SIZE
+    return COFFEE
 
 
 def coffee_size(bot, update, user_data):
     query = update.callback_query
-    for data in user_data['coffees']:
-        if data[0] == int(query.data):
-            user_data['coffee'] = data[1]
-            user_data['is_syrup'] = data[3]
-            user_data['is_size'] = data[4]
-            sql_query[1] = data[0]
-            break
+    if query.data != 'back_to_coffee_size':
+        for data in user_data['coffees']:
+            if data[0] == int(query.data):
+                user_data['coffee'] = data[1]
+                user_data['is_syrup'] = data[3]
+                user_data['is_size'] = data[4]
+                sql_query[1] = data[0]
+                break
     keyboard = []
     user_data['sizes'] = coffee_sqlite.select_sizes(sql_query[1])
     for data in user_data['sizes']:
@@ -79,24 +80,29 @@ def coffee_size(bot, update, user_data):
         reply_markup=reply_markup
     )
     if user_data['is_syrup'] == 0:
-        return BILL
-    return SYRUP
+        return SYRUP
+    return SIZE
 
 
 def syrup(bot, update, user_data):
     query = update.callback_query
-    for data in user_data['sizes']:
-        if data[0] == int(query.data):
-            user_data['size'] = data[2]
-            sql_query[5] = data[0]
-            user_data['cost'] = data[3]
-            break
+    if query.data != 'back_to_syrup':
+        for data in user_data['sizes']:
+            if data[0] == int(query.data):
+                user_data['size'] = data[2]
+                sql_query[5] = data[0]
+                user_data['cost'] = data[3]
+                break
     keyboard = []
     user_data['syrups'] = coffee_sqlite.select_items('menu_syrup')
+    if user_data['is_syrup'] == 0:
+        back = 'back_to_coffee'
+    else:
+        back = 'back_to_coffee_size'
     for data in user_data['syrups']:
         keyboard.append([InlineKeyboardButton(emojize(data[3], use_aliases=True) + str(data[1]) + ', ' + str(data[2]) + ' BYN',
                         callback_data=data[0])])
-    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data=back),
                      InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     bot.edit_message_text(
@@ -105,7 +111,7 @@ def syrup(bot, update, user_data):
         text="Choose syrup:",
         reply_markup=reply_markup
     )
-    return BILL
+    return SYRUP
 
 
 def bill(bot, update, user_data):
@@ -129,15 +135,24 @@ def bill(bot, update, user_data):
                 sql_query[3] = user_data['cost']
                 break
     sql_query[4] = datetime.now()
-    coffee_sqlite.insert_order(sql_query)
+    # coffee_sqlite.insert_order(sql_query)
+    user_data['sql_query'] = sql_query
+    if user_data['is_syrup'] == 0:
+        back = 'back_to_coffee_size'
+    else:
+        back = 'back_to_syrup'
+    keyboard = [[InlineKeyboardButton("\U00002B05 BACK", callback_data=back),
+                 InlineKeyboardButton("\U0001F197 YES", callback_data='retry')]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
     bot.edit_message_text(
         chat_id=query.message.chat_id,
         message_id=query.message.message_id,
         text='Your order is:\n\tCoffee: {coffee}\n\t'
              'Syrup: {syrup}\n\tSize: {size}mL\n\t'
-             'Price: {cost} BYN'.format(**user_data)
+             'Current price: {cost} BYN'.format(**user_data),
+        reply_markup=reply_markup
     )
-    return ConversationHandler.END
+    return BILL
 
 
 def last_order(bot, update, user_data):
@@ -150,7 +165,7 @@ def last_order(bot, update, user_data):
     user_data['sql_query'] = retry_order
     if l_order:
         keyboard = []
-        keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+        keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back_to_syrup'),
                          InlineKeyboardButton("\U0001F197 YES", callback_data='retry')])
         reply_markup = InlineKeyboardMarkup(keyboard)
         bot.edit_message_text(
@@ -204,27 +219,58 @@ conv_handler = ConversationHandler(
         entry_points=[CommandHandler('menu', menu)],
 
         states={
-            COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
-                     CallbackQueryHandler(last_order, pattern='^last_order$', pass_user_data=True),
+            CHOSEN: [CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(last_order, pattern='^last_order$'),
                      CallbackQueryHandler(coffee, pass_user_data=True),
                      ],
-            SIZE:   [CallbackQueryHandler(menu, pattern='^back$'),
+            COFFEE: [CallbackQueryHandler(menu, pattern='^back$'),
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(coffee_size, pass_user_data=True),
                      ],
-            SYRUP:  [CallbackQueryHandler(menu, pattern='^back$'),
+            SIZE:   [CallbackQueryHandler(coffee, pattern='^back$', pass_user_data=True),
                      CallbackQueryHandler(reset, pattern='^reset$'),
                      CallbackQueryHandler(syrup, pass_user_data=True),
-                     ],
-            BILL:   [CallbackQueryHandler(coffee, pattern='^back$'),
-                     CallbackQueryHandler(reset, pattern='^reset$'),
+                    ],
+            SYRUP:  [CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(coffee, pattern='^back_to_coffee$', pass_user_data=True),
+                     CallbackQueryHandler(coffee_size, pattern='^back_to_coffee_size$', pass_user_data=True),
                      CallbackQueryHandler(bill, pass_user_data=True),
                      ],
-            RETRY:  [CallbackQueryHandler(last_order_retry, pattern='^retry$', pass_user_data=True),
-                     CallbackQueryHandler(menu, pattern='^back$'),
-                     CallbackQueryHandler(coffee, pass_user_data=True),
-                     ]
+            BILL:   [CallbackQueryHandler(reset, pattern='^reset$'),
+                     CallbackQueryHandler(coffee_size, pattern='^back_to_coffee_size$', pass_user_data=True),
+                     CallbackQueryHandler(syrup, pattern='^back_to_syrup$', pass_user_data=True),
+                     CallbackQueryHandler(last_order_retry, pass_user_data=True),
+                     ],
         },
 
         fallbacks=[CommandHandler('menu', menu)]
     )
+# conv_handler = ConversationHandler(
+#         entry_points=[CommandHandler('menu', menu)],
+#
+#         states={
+#             COFFEE: [CallbackQueryHandler(reset, pattern='^reset$'),
+#                      CallbackQueryHandler(last_order, pattern='^last_order$', pass_user_data=True),
+#                      CallbackQueryHandler(coffee, pass_user_data=True),
+#                      ],
+#             SIZE:   [CallbackQueryHandler(coffee, pattern='^back$', pass_user_data=True),
+#                      CallbackQueryHandler(reset, pattern='^reset$'),
+#                      CallbackQueryHandler(coffee_size, pass_user_data=True),
+#                      ],
+#             SYRUP:  [CallbackQueryHandler(coffee, pattern='^back$', pass_user_data=True),
+#                      CallbackQueryHandler(reset, pattern='^reset$'),
+#                      CallbackQueryHandler(syrup, pass_user_data=True),
+#                      ],
+#             BILL:   [CallbackQueryHandler(coffee, pattern='^back$', pass_user_data=True),
+#                      CallbackQueryHandler(reset, pattern='^reset$'),
+#                      CallbackQueryHandler(bill, pass_user_data=True),
+#                      ],
+#             RETRY:  [CallbackQueryHandler(last_order_retry, pattern='^retry$', pass_user_data=True),
+#                      CallbackQueryHandler(menu, pattern='^back$'),
+#                      CallbackQueryHandler(syrup, pattern='^back_to_syrup$', pass_user_data=True),
+#                      CallbackQueryHandler(coffee, pass_user_data=True),
+#                      ]
+#         },
+#
+#         fallbacks=[CommandHandler('menu', menu)]
+#     )

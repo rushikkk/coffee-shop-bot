@@ -50,7 +50,8 @@ def last_order(user_id):
         detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
     c = conn.cursor()
     c.execute("""
-    SELECT coffee_name, syrup_name, coffee_size.size, user_id, orders.coffee_id, syrup_id, (syrup_cost+coffee_size.cost), size_id
+    SELECT coffee_name, syrup_name, coffee_size.size, user_id, orders.coffee_id, \
+    syrup_id, (syrup_cost+coffee_size.cost), size_id
     FROM orders
     INNER JOIN menu_coffee on (menu_coffee.id = orders.coffee_id)
     INNER JOIN menu_syrup on (menu_syrup.id = orders.syrup_id)
