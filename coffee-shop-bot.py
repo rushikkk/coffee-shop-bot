@@ -8,7 +8,6 @@ import logging
 import bot_token
 from menu import conv_handler
 
-
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - \
     %(message)s', level=logging.INFO)
@@ -20,15 +19,15 @@ def start(bot, update):
     """Start the Bot"""
     bot.send_message(chat_id=update.message.chat_id,
                      text="Введите /menu для отображения меню."
-                     "\nВведите /help для справки.")
+                          "\nВведите /help для справки.")
 
 
 def help_menu(bot, update):
     """Show help menu"""
     bot.send_message(chat_id=update.message.chat_id,
                      text="<b>Доступные команды:</b>"
-                     "\n\t/menu - отобразить меню"
-                     "\n\t/help - отобразить раздел справки\n",
+                          "\n\t/menu - отобразить меню"
+                          "\n\t/help - отобразить раздел справки\n",
                      parse_mode='HTML')
 
 
@@ -40,7 +39,6 @@ def unknown(bot, update):
 
 
 def main():
-
     # Create the EventHandler and pass it your bot's token.
     updater = Updater(token=bot_token.token)
 
@@ -60,6 +58,21 @@ def main():
 
     # Start the bot
     updater.start_polling()
+
+    # Start the bot via WebHook
+    # updater.start_webhook(listen='127.0.0.1', port=5000, url_path='<TOKEN>')
+    # updater.bot.set_webhook(url='https://<DOMAIN_NAME>/<TOKEN>')
+    # NGINX config:
+    # server  {
+    #   server_name <DOMAIN_NAME>;
+    #   listen  443 ssl;
+    #   ssl_certificate /path/to/fullchain.pem; #Let's Encrypt certificate
+    #   ssl_certificate_key /path/to/privkey.pem;
+    #   ssl_trusted_certificate /path/to/chain.pem;
+    #   location /<TOKEN> {
+    #       proxy_pass  http://127.0.0.1:5000;
+    #   }
+    # }
 
     # updater.start_webhook()
     updater.idle()
