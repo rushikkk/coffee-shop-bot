@@ -1,6 +1,6 @@
-certifi==2017.11.5
-Django==2.0.5
-emoji==0.4.5
-future==0.16.0
-python-telegram-bot==10.1.0
-pytz==2018.4
+certifi>=2017.11.5
+Django>=2.0.5
+emoji>=0.4.5
+future>=0.16.0
+python-telegram-bot>=10.1.0
+pytz>=2018.4
