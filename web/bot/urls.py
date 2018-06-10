@@ -10,5 +10,5 @@ urlpatterns = [
     # ex: /bot/5/results/
     path('<int:question_id>/results/', views.results, name='results'),
     # ex: /bot/5/vote/
-    path('<int:question_id>/vote/', views.vote, name='vote'),
+    path('orders/', views.orders, name='orders'),
 ]

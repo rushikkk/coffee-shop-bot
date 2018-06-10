@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render
 
 # Create your views here.
 from django.http import HttpResponse
-from .models import Coffee
+from .models import Coffee, Orders
 
 
 def index(request):
@@ -24,5 +24,9 @@ def results(request, question_id):
     return HttpResponse(response % question_id)
 
 
-def vote(request, question_id):
-    return HttpResponse("You're voting on order %s." % question_id)
+def orders(request):
+    orders = Orders.objects.order_by('-ordered_at')
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'bot/orders.html', context)
