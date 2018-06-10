@@ -11,8 +11,9 @@ class Coffee(models.Model):
     def __str__(self):
         return self.name
 
+
 class Size(models.Model):
-    coffee_id = models.ForeignKey(Coffee, on_delete=None, related_name='+')
+    coffee = models.ForeignKey(Coffee, on_delete=models.DO_NOTHING, related_name='+')
     size = models.IntegerField(default=0)
     cost = models.FloatField()
 
@@ -28,8 +29,9 @@ class Syrup(models.Model):
 
 class Orders(models.Model):
     user_id = models.IntegerField(default=0)
-    coffee = models.ForeignKey(Coffee, on_delete=None)
-    size = models.IntegerField(default=0)
-    syrup = models.ForeignKey(Syrup, on_delete=None)
+    coffee = models.ForeignKey(Coffee, on_delete=models.DO_NOTHING)
+    # size = models.IntegerField(default=0)
+    size = models.ForeignKey(Size, on_delete=models.DO_NOTHING)
+    syrup = models.ForeignKey(Syrup, on_delete=models.DO_NOTHING)
     cost = models.FloatField()
     ordered_at = models.DateTimeField("order's date")

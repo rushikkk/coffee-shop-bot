@@ -38,7 +38,7 @@ def coffee(bot, update, user_data):
     query = update.callback_query
     sql_query[0] = update.effective_user['id']
     keyboard = []
-    user_data['coffees'] = coffee_sqlite.select_items('menu_coffee')
+    user_data['coffees'] = coffee_sqlite.select_items('bot_coffee')
     for data in user_data['coffees']:
         keyboard.append([InlineKeyboardButton('\U00002615 ' + str(data[1]),
                         callback_data=data[0])])
@@ -61,15 +61,19 @@ def coffee_size(bot, update, user_data):
             if data[0] == int(query.data):
                 user_data['coffee'] = data[1]
                 user_data['is_syrup'] = data[3]
-                user_data['is_size'] = data[4]
+                user_data['is_size'] = data[2]
                 sql_query[1] = data[0]
                 break
+    if user_data['is_syrup'] == 0:
+        back = 'back_to_coffee'
+    else:
+        back = 'back'
     keyboard = []
     user_data['sizes'] = coffee_sqlite.select_sizes(sql_query[1])
     for data in user_data['sizes']:
-        keyboard.append([InlineKeyboardButton("\U00002696" + str(data[2]) + 'mL, ' + str(data[3]) + ' BYN',
+        keyboard.append([InlineKeyboardButton("\U00002696" + str(data[1]) + 'mL, ' + str(data[2]) + ' BYN',
                         callback_data=data[0])])
-    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data='back'),
+    keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data=back),
                      InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     bot.edit_message_text(
@@ -88,18 +92,18 @@ def syrup(bot, update, user_data):
     if query.data != 'back_to_syrup':
         for data in user_data['sizes']:
             if data[0] == int(query.data):
-                user_data['size'] = data[2]
+                user_data['size'] = data[1]
                 sql_query[5] = data[0]
-                user_data['cost'] = data[3]
+                user_data['cost'] = data[2]
                 break
     keyboard = []
-    user_data['syrups'] = coffee_sqlite.select_items('menu_syrup')
+    user_data['syrups'] = coffee_sqlite.select_items('bot_syrup')
     if user_data['is_syrup'] == 0:
         back = 'back_to_coffee'
     else:
         back = 'back_to_coffee_size'
     for data in user_data['syrups']:
-        keyboard.append([InlineKeyboardButton(emojize(data[3], use_aliases=True) + str(data[1]) + ', ' + str(data[2]) + ' BYN',
+        keyboard.append([InlineKeyboardButton(emojize(data[2], use_aliases=True) + str(data[1]) + ', ' + str(data[3]) + ' BYN',
                         callback_data=data[0])])
     keyboard.append([InlineKeyboardButton("\U00002B05 BACK", callback_data=back),
                      InlineKeyboardButton("\U0000274E CANCEL", callback_data='reset')])
@@ -118,9 +122,9 @@ def bill(bot, update, user_data):
     if user_data['is_syrup'] == 0:
         for data in user_data['sizes']:
             if data[0] == int(query.data):
-                user_data['size'] = data[2]
+                user_data['size'] = data[1]
                 sql_query[5] = data[0]
-                user_data['cost'] = data[3]
+                user_data['cost'] = data[2]
                 break
         user_data['syrup'] = 'Without syrup'
         sql_query[2] = 1
@@ -130,7 +134,7 @@ def bill(bot, update, user_data):
             if data[0] == int(query.data):
                 user_data['syrup'] = data[1]
                 sql_query[2] = data[0]
-                user_data['cost'] += data[2]
+                user_data['cost'] += data[3]
                 sql_query[3] = user_data['cost']
                 break
     sql_query[4] = datetime.now()
@@ -171,7 +175,6 @@ def last_order(bot, update, user_data):
             text='Your last order is:\n\t' + user_data['string'] + 'Retry?',
             reply_markup=reply_markup
         )
-        # print(query)
         return BILL
     else:
         bot.edit_message_text(
