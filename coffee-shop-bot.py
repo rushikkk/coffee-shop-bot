@@ -7,6 +7,7 @@ from telegram import ReplyKeyboardRemove
 import logging
 import bot_token
 from menu import conv_handler
+from telegram.ext.dispatcher import run_async
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - \
@@ -15,6 +16,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - \
 logger = logging.getLogger(__name__)
 
 
+@run_async
 def start(bot, update):
     """Start the Bot"""
     bot.send_message(chat_id=update.message.chat_id,
@@ -22,6 +24,7 @@ def start(bot, update):
                           "\nВведите /help для справки.")
 
 
+@run_async
 def help_menu(bot, update):
     """Show help menu"""
     bot.send_message(chat_id=update.message.chat_id,
@@ -31,6 +34,7 @@ def help_menu(bot, update):
                      parse_mode='HTML')
 
 
+@run_async
 def unknown(bot, update):
     """Unknown command"""
     bot.send_message(chat_id=update.message.chat_id,

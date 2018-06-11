@@ -7,6 +7,7 @@ from datetime import datetime
 import coffee_sqlite
 from emoji import emojize
 
+
 CHOSEN, COFFEE, SIZE, SYRUP, BILL, RETRY = range(6)
 sql_query = ['' for i in range(6)]
 

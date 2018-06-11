@@ -25,7 +25,7 @@ def results(request, question_id):
 
 
 def orders(request):
-    orders = Orders.objects.order_by('-ordered_at')
+    orders = Orders.objects.order_by('-ordered_at')[0:15]
     context = {
         'orders': orders,
     }
