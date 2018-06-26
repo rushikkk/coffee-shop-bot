@@ -1,5 +1,6 @@
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.core import serializers
 
 # Create your views here.
 from django.http import HttpResponse
@@ -30,3 +31,11 @@ def orders(request):
         'orders': orders,
     }
     return render(request, 'bot/orders.html', context)
+
+
+def ajax_orders(request):
+    orders = Orders.objects.order_by('-ordered_at')[0:15].values()
+    context = {
+        'orders': orders,
+    }
+    return render(request, 'bot/orders_ajax.html', context)

@@ -11,4 +11,5 @@ urlpatterns = [
     path('<int:question_id>/results/', views.results, name='results'),
     # ex: /bot/5/vote/
     path('orders/', views.orders, name='orders'),
+    path('ajax/orders/', views.ajax_orders, name='ajax_orders'),
 ]
