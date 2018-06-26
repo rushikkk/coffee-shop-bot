@@ -34,8 +34,9 @@ def orders(request):
 
 
 def ajax_orders(request):
-    orders = Orders.objects.order_by('-ordered_at')[0:15].values()
-    context = {
-        'orders': orders,
-    }
-    return render(request, 'bot/orders_ajax.html', context)
+    if request.method == 'GET':
+        orders = Orders.objects.order_by('-ordered_at')[0:15].values()
+        context = {
+            'orders': orders,
+        }
+        return render(request, 'bot/orders_ajax.html', context)
