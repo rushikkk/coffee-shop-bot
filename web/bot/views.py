@@ -1,6 +1,7 @@
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.core import serializers
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 
 # Create your views here.
 from django.http import HttpResponse
@@ -40,3 +41,11 @@ def ajax_orders(request):
             'orders': orders,
         }
         return render(request, 'bot/orders_ajax.html', context)
+
+def orders2(request):
+    orders_list = Orders.objects.order_by('-ordered_at').all()
+    paginator = Paginator(orders_list, 15)  # Show 25 contacts per page
+
+    page = request.GET.get('page')
+    orders = paginator.get_page(page)
+    return render(request, 'bot/orders2.html', {'orders': orders})

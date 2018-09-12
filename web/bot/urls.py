@@ -12,4 +12,5 @@ urlpatterns = [
     # ex: /bot/5/vote/
     path('orders/', views.orders, name='orders'),
     path('ajax/orders/', views.ajax_orders, name='ajax_orders'),
+    path('orders2/', views.orders2, name='orders2'),
 ]
